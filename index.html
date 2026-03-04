@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do'kon Tizimi</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #00e5a0;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --danger: #ff4757;
+    --warning: #ffa502;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
+  .logo span { color: var(--text); }
+
+  nav {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 28px 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  .page { display: none; padding: 28px; max-width: 1200px; margin: 0 auto; width: 100%; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+  .stat-card.orange::before { background: var(--accent2); }
+  .stat-card.warning::before { background: var(--warning); }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 1px; }
+  .stat-value { font-size: 32px; font-weight: 800; color: var(--text); margin-top: 8px; font-family: 'Space Mono', monospace; }
+  .stat-value.green { color: var(--accent); }
+
+  /* ── SCANNER BOX ── */
+  .scanner-box {
+    background: var(--surface2);
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    transition: border-color .2s;
+    margin-bottom: 24px;
+  }
+  .scanner-box:focus-within { border-color: var(--accent); }
+  .scanner-icon { font-size: 48px; margin-bottom: 12px; }
+  .scanner-label { color: var(--muted); margin-bottom: 16px; font-size: 14px; }
+
+  /* ── CAMERA SCANNER ── */
+  .camera-area {
+    display: none;
+    margin: 16px auto 0;
+    max-width: 400px;
+  }
+  .camera-area.show { display: block; }
+  #scannerVideo {
+    width: 100%;
+    border-radius: 12px;
+    border: 2px solid var(--accent);
+  }
+  .scan-overlay {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+  .scan-line {
+    position: absolute;
+    left: 10%; right: 10%;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: scanAnim 2s linear infinite;
+  }
+  @keyframes scanAnim {
+    0%   { top: 10%; }
+    50%  { top: 85%; }
+    100% { top: 10%; }
+  }
+
+  .input-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Space Mono', monospace;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input.barcode-input {
+    font-size: 18px;
+    letter-spacing: 2px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00ffb3; transform: translateY(-1px); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #ff6b81; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-orange { background: var(--accent2); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-cam { background: #1a1a3e; border: 1px solid #3a3a6e; color: #8888ff; }
+  .btn-cam:hover { border-color: #8888ff; }
+
+  .product-found {
+    background: linear-gradient(135deg, #0a1f14, #0d2a1a);
+    border: 1px solid #1a4d2e;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    animation: slideIn .3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .product-found .pname  { font-size: 20px; font-weight: 800; }
+  .product-found .pprice { font-size: 28px; font-weight: 800; color: var(--accent); font-family: 'Space Mono', monospace; }
+  .product-found .pmeta  { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .qty-ctrl { display: flex; align-items: center; gap: 10px; }
+  .qty-btn {
+    width: 36px; height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .qty-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .qty-num { font-size: 20px; font-weight: 800; min-width: 30px; text-align: center; font-family: 'Space Mono', monospace; }
+
+  .cart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .cart-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  .cart-item:hover { background: var(--surface2); }
+  .cart-item-name  { font-weight: 600; }
+  .cart-item-meta  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cart-item-price { font-family: 'Space Mono', monospace; color: var(--accent); font-weight: 700; }
+  .cart-footer {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .cart-total { font-size: 24px; font-weight: 800; font-family: 'Space Mono', monospace; }
+  .cart-total span { color: var(--accent); }
+  .cart-empty { padding: 40px; text-align: center; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--surface2); }
+  .mono { font-family: 'Space Mono', monospace; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-green { background: #0a2a1a; color: var(--accent); border: 1px solid #1a4d2e; }
+  .badge-red   { background: #2a0a0a; color: var(--danger); border: 1px solid #4d1a1a; }
+  .badge-cat   { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .form-group input, .form-group select { width: 100%; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9999;
+    transform: translateX(200%);
+    transition: transform .3s ease;
+    max-width: 320px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.error   { border-left-color: var(--danger); }
+  .toast.warning { border-left-color: var(--warning); }
+
+  .search-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .search-bar input { flex: 1; min-width: 200px; }
+
+  .low-stock-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .low-stock-item:last-child { border-bottom: none; }
+  .stock-num { font-family: 'Space Mono', monospace; color: var(--warning); font-weight: 700; }
+
+  /* ── CHEK (RECEIPT) ── */
+  @media print {
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block !important; }
+  }
+  #printArea {
+    display: none;
+    background: #fff;
+    color: #000;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 20px;
+    max-width: 300px;
+  }
+  .receipt-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    border-bottom: 2px dashed #000;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+  .receipt-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .receipt-total {
+    border-top: 2px dashed #000;
+    padding-top: 10px;
+    margin-top: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 600px) {
+    .page { padding: 16px; }
+    header { padding: 12px 16px; }
+    nav { padding: 8px 16px 0; }
+    .stat-value { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">🏪 Do'<span>kon</span></div>
+  <div id="clock" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted)"></div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <button class="tab active" onclick="showPage('cashier',this)">🧾 Kassa</button>
+  <button class="tab" onclick="showPage('products',this)">📦 Mahsulotlar</button>
+  <button class="tab" onclick="showPage('add-product',this)">➕ Qo'shish</button>
+  <button class="tab" onclick="showPage('sales',this)">📊 Sotuvlar</button>
+  <button class="tab" onclick="showPage('dashboard',this)">📈 Dashboard</button>
+</nav>
+
+<!-- ══════════ KASSA ══════════ -->
+<div id="page-cashier" class="page active">
+
+  <div class="scanner-box">
+    <div class="scanner-icon">📷</div>
+    <p class="scanner-label">Shtrix kodni skanerlang yoki qo'lda kiriting</p>
+    <div class="input-row">
+      <input class="barcode-input" id="barcodeInput" type="text"
+             placeholder="4890001234560..."
+             onkeydown="if(event.key==='Enter') scanBarcode()">
+      <button class="btn btn-primary" onclick="scanBarcode()">🔍 Qidirish</button>
+      <button class="btn btn-cam" onclick="toggleCamera()" id="camBtn">📷 Kamera</button>
+    </div>
+
+    <!-- Kamera oynasi -->
+    <div class="camera-area" id="cameraArea">
+      <div id="qr-reader" style="width:100%;border-radius:12px;overflow:hidden"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-danger btn-sm" onclick="stopCamera()">⏹ To'xtatish</button>
+        <select id="cameraSelect" onchange="switchCamera()"
+                style="background:var(--surface2);color:var(--text);border-color:var(--border);font-size:12px;padding:6px 10px">
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topilgan mahsulot -->
+  <div id="productResult" style="display:none">
+    <div class="product-found">
+      <div>
+        <div class="pname" id="pName">—</div>
+        <div class="pmeta" id="pMeta">—</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div class="pprice" id="pPrice">—</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <div class="qty-num" id="qtyNum">1</div>
+          <button class="qty-btn" onclick="changeQty(1)">+</button>
+        </div>
+        <button class="btn btn-primary" onclick="addToCart()">Savatga ➕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Savat -->
+  <div class="cart-section">
+    <div class="cart-header">
+      <span>🛒 Savat</span>
+      <button class="btn btn-ghost btn-sm" onclick="clearCart()">Tozalash</button>
+    </div>
+    <div id="cartItems">
+      <div class="cart-empty">Savat bo'sh — mahsulot qo'shing</div>
+    </div>
+    <div class="cart-footer">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">JAMI SUMMA</div>
+        <div class="cart-total">UZS <span id="cartTotal">0</span></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="printReceipt()">🖨️ Chek chiqarish</button>
+        <button class="btn btn-primary" onclick="checkout()" style="padding:12px 28px;font-size:16px">
+          ✅ Sotish
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAHSULOTLAR ══════════ -->
+<div id="page-products" class="page">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Nom yoki shtrix kod..." oninput="filterProducts()">
+    <button class="btn btn-ghost" onclick="loadProducts()">🔄 Yangilash</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Shtrix kod</th>
+          <th>Mahsulot nomi</th>
+          <th>Narx</th>
+          <th>Zaxira</th>
+          <th>Kategoriya</th>
+          <th>Amal</th>
+        </tr>
+      </thead>
+      <tbody id="productsTable">
+        <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Yuklanmoqda...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ QO'SHISH ══════════ -->
+<div id="page-add-product" class="page">
+  <div class="card">
+    <div class="card-title">Yangi mahsulot qo'shish</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Shtrix kod *</label>
+        <input id="f_barcode" type="text" placeholder="4890000001234">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mahsulot nomi *</label>
+        <input id="f_name" type="text" placeholder="Coca-Cola 1L">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Narx (UZS) *</label>
+        <input id="f_price" type="number" placeholder="5500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Zaxira miqdori *</label>
+        <input id="f_quantity" type="number" placeholder="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kategoriya</label>
+        <select id="f_category">
+          <option>Ichimliklar</option>
+          <option>Non mahsulotlari</option>
+          <option>Shirinliklar</option>
+          <option>Choy/Qahva</option>
+          <option>Oziq-ovqat</option>
+          <option>Gigiena</option>
+          <option>Umumiy</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" onclick="addProduct()">✅ Mahsulot qo'shish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SOTUVLAR ══════════ -->
+<div id="page-sales" class="page">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:700;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Sotuvlar tarixi</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadSales()">🔄</button>
+    </div>
+    <div id="salesList" style="padding:20px;color:var(--muted);text-align:center">Yuklanmoqda...</div>
+  </div>
+</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div id="page-dashboard" class="page">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Mahsulotlar</div>
+      <div class="stat-value" id="stat-products">—</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Sotuvlar soni</div>
+      <div class="stat-value" id="stat-sales">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Umumiy daromad</div>
+      <div class="stat-value green" id="stat-revenue" style="font-size:22px">—</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚠️ Zaxira oz (&lt;10 dona)</div>
+    <div id="lowStock"><p style="color:var(--muted)">Yuklanmoqda...</p></div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="printArea">
+  <div class="receipt-title">🏪 DO'KON TIZIMI</div>
+  <div id="printDate" style="text-align:center;color:#666;margin-bottom:12px;font-size:11px"></div>
+  <div id="printItems"></div>
+  <div class="receipt-total">
+    <span>JAMI:</span>
+    <span id="printTotal"></span>
+  </div>
+  <div style="text-align:center;margin-top:16px;font-size:11px;color:#666">
+    Rahmat! Yana keling 😊
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Barcode scanner library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+const API = "http://localhost:5000/api";
+
+let cart = [];
+let currentProduct = null;
+let currentQty = 1;
+let allProducts = [];
+let html5QrCode = null;
+let cameraActive = false;
+
+// ── CLOCK ──
+setInterval(() => {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleDateString('uz-UZ') + '  ' + d.toLocaleTimeString('uz-UZ');
+}, 1000);
+
+// ── PAGE NAV ──
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'products')  loadProducts();
+  if (name === 'sales')     loadSales();
+  if (name === 'dashboard') loadStats();
+}
+
+// ── TOAST ──
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type==='error' ? ' error' : type==='warning' ? ' warning' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function fmt(n) { return Number(n).toLocaleString('uz-UZ'); }
+
+// ════════════════
+// KAMERA SCANNER (html5-qrcode)
+// ════════════════
+async function toggleCamera() {
+  if (cameraActive) { stopCamera(); return; }
+  document.getElementById('cameraArea').classList.add('show');
+  document.getElementById('camBtn').textContent = '⏹ Kamerani yopish';
+  cameraActive = true;
+
+  html5QrCode = new Html5Qrcode("qr-reader");
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras || cameras.length === 0) {
+      toast('Kamera topilmadi', 'error'); stopCamera(); return;
+    }
+    const sel = document.getElementById('cameraSelect');
+    sel.innerHTML = '';
+    cameras.forEach((cam, i) => {
+      const opt = document.createElement('option');
+      opt.value = cam.id;
+      opt.textContent = cam.label || 'Kamera ' + (i + 1);
+      sel.appendChild(opt);
+    });
+    const backCam = cameras.find(c => c.label.toLowerCase().includes('back')) || cameras[cameras.length - 1];
+    sel.value = backCam.id;
+    await startScan(backCam.id);
+  } catch(e) {
+    toast('Kamera xatosi: ' + e, 'error'); stopCamera();
+  }
+}
+
+async function startScan(cameraId) {
+  try {
+    await html5QrCode.start(
+      cameraId,
+      { fps: 10, qrbox: { width: 280, height: 120 } },
+      (decodedText) => {
+        document.getElementById('barcodeInput').value = decodedText;
+        toast('📷 Aniqlandi: ' + decodedText);
+        stopCamera();
+        setTimeout(() => scanBarcode(), 300);
+      },
+      () => {}
+    );
+  } catch(e) {
+    toast('Kamera ishga tushmadi: ' + e, 'error'); stopCamera();
+  }
+}
+
+async function switchCamera() {
+  if (!cameraActive || !html5QrCode) return;
+  try { await html5QrCode.stop(); } catch(e) {}
+  await startScan(document.getElementById('cameraSelect').value);
+}
+
+async function stopCamera() {
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); } catch(e) {}
+    html5QrCode = null;
+  }
+  document.getElementById('cameraArea').classList.remove('show');
+  document.getElementById('camBtn').textContent = '📷 Kamera';
+  cameraActive = false;
+}
+
+// ════════════════
+// KASSA
+// ════════════════
+async function scanBarcode() {
+  const barcode = document.getElementById('barcodeInput').value.trim();
+  if (!barcode) return;
+  try {
+    const res = await fetch(`${API}/products/barcode/${barcode}`);
+    const data = await res.json();
+    if (!res.ok) {
+      toast('❌ ' + data.error, 'error');
+      document.getElementById('productResult').style.display = 'none';
+      return;
+    }
+    currentProduct = data;
+    currentQty = 1;
+    document.getElementById('qtyNum').textContent = 1;
+    document.getElementById('pName').textContent  = data.name;
+    document.getElementById('pMeta').textContent  =
+      `${data.category} | Zaxira: ${data.quantity} dona | Kod: ${data.barcode}`;
+    document.getElementById('pPrice').textContent = fmt(data.price) + ' UZS';
+    document.getElementById('productResult').style.display = 'block';
+    document.getElementById('barcodeInput').select();
+  } catch {
+    toast('❌ Serverga ulanib bo\'lmadi', 'error');
+  }
+}
+
+function changeQty(d) {
+  currentQty = Math.max(1, currentQty + d);
+  document.getElementById('qtyNum').textContent = currentQty;
+}
+
+function addToCart() {
+  if (!currentProduct) return;
+  const ex = cart.find(i => i.barcode === currentProduct.barcode);
+  if (ex) ex.quantity += currentQty;
+  else cart.push({ ...currentProduct, quantity: currentQty });
+  renderCart();
+  toast(`✅ ${currentProduct.name} qo'shildi`);
+  document.getElementById('barcodeInput').value = '';
+  document.getElementById('productResult').style.display = 'none';
+  document.getElementById('barcodeInput').focus();
+}
+
+function removeFromCart(barcode) {
+  cart = cart.filter(i => i.barcode !== barcode);
+  renderCart();
+}
+
+function clearCart() { cart = []; renderCart(); }
+
+function renderCart() {
+  const el = document.getElementById('cartItems');
+  if (!cart.length) {
+    el.innerHTML = '<div class="cart-empty">Savat bo\'sh — mahsulot qo\'shing</div>';
+    document.getElementById('cartTotal').textContent = '0';
+    return;
+  }
+  let total = 0;
+  el.innerHTML = cart.map(item => {
+    const sub = item.price * item.quantity;
+    total += sub;
+    return `
+      <div class="cart-item">
+        <div>
+          <div class="cart-item-name">${item.name}</div>
+          <div class="cart-item-meta">${fmt(item.price)} × ${item.quantity}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="cart-item-price">${fmt(sub)} UZS</div>
+          <button class="btn btn-danger btn-sm" onclick="removeFromCart('${item.barcode}')">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('cartTotal').textContent = fmt(total);
+}
+
+async function checkout() {
+  if (!cart.length) { toast('Savat bo\'sh!', 'warning'); return; }
+  try {
+    const res = await fetch(`${API}/sales`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: cart.map(i => ({ barcode: i.barcode, quantity: i.quantity })) })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('❌ ' + data.error, 'error'); return; }
+    toast(`✅ Sotuv amalga oshdi! Jami: ${fmt(data.total)} UZS`);
+    cart = [];
+    renderCart();
+  } catch {
+    toast('❌ Serverga ulanib bo\'lmadi', 'error');
+  }
+}
+
+// ── CHEK CHIQARISH ──
+function printReceipt() {
+  if (!cart.length) { toast('Savat bo\'sh!', 'warning'); return; }
+  let total = 0;
+  const lines = cart.map(i => {
+    const sub = i.price * i.quantity;
+    total += sub;
+    return `<div class="receipt-row"><span>${i.name} x${i.quantity}</span><span>${fmt(sub)}</span></div>`;
+  }).join('');
+  document.getElementById('printItems').innerHTML = lines;
+  document.getElementById('printTotal').textContent = fmt(total) + ' UZS';
+  document.getElementById('printDate').textContent  = new Date().toLocaleString('uz-UZ');
+  window.print();
+}
+
+// ════════════════
+// MAHSULOTLAR
+// ════════════════
+async function loadProducts() {
+  try {
+    const res = await fetch(`${API}/products`);
+    allProducts = await res.json();
+    renderProducts(allProducts);
+  } catch {
+    toast('Serverga ulanib bo\'lmadi', 'error');
+  }
+}
+
+function filterProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderProducts(allProducts.filter(p =>
+    p.name.toLowerCase().includes(q) || p.barcode.includes(q)
+  ));
+}
+
+function renderProducts(products) {
+  const tb = document.getElementById('productsTable');
+  if (!products.length) {
+    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Topilmadi</td></tr>';
+    return;
+  }
+  tb.innerHTML = products.map(p => `
+    <tr>
+      <td class="mono" style="font-size:12px;color:var(--muted)">${p.barcode}</td>
+      <td style="font-weight:600">${p.name}</td>
+      <td class="mono">${fmt(p.price)} UZS</td>
+      <td><span class="badge ${p.quantity < 10 ? 'badge-red' : 'badge-green'}">${p.quantity} dona</span></td>
+      <td><span class="badge badge-cat">${p.category}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id},'${p.name}')">O'chirish</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteProduct(id, name) {
+  if (!confirm(`"${name}" ni o'chirasizmi?`)) return;
+  const res = await fetch(`${API}/products/${id}`, { method: 'DELETE' });
+  if (res.ok) { toast('🗑️ O\'chirildi'); loadProducts(); }
+}
+
+// ════════════════
+// QO'SHISH
+// ════════════════
+async function addProduct() {
+  const d = {
+    barcode:  document.getElementById('f_barcode').value.trim(),
+    name:     document.getElementById('f_name').value.trim(),
+    price:    parseFloat(document.getElementById('f_price').value),
+    quantity: parseInt(document.getElementById('f_quantity').value),
+    category: document.getElementById('f_category').value,
+  };
+  if (!d.barcode || !d.name || isNaN(d.price) || isNaN(d.quantity)) {
+    toast('Barcha maydonlarni to\'ldiring!', 'warning'); return;
+  }
+  const res = await fetch(`${API}/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(d)
+  });
+  const data = await res.json();
+  if (res.ok) {
+    toast('✅ Mahsulot qo\'shildi!');
+    ['f_barcode','f_name','f_price','f_quantity'].forEach(id =>
+      document.getElementById(id).value = '');
+  } else {
+    toast('❌ ' + data.error, 'error');
+  }
+}
+
+// ════════════════
+// SOTUVLAR
+// ════════════════
+async function loadSales() {
+  const el = document.getElementById('salesList');
+  el.innerHTML = '<p style="text-align:center;color:var(--muted)">Yuklanmoqda...</p>';
+  try {
+    const res = await fetch(`${API}/sales`);
+    const sales = await res.json();
+    if (!sales.length) {
+      el.innerHTML = '<p style="text-align:center;color:var(--muted)">Sotuvlar yo\'q</p>';
+      return;
+    }
+    el.innerHTML = sales.map(s => `
+      <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden">
+        <div style="padding:12px 16px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span style="font-family:'Space Mono',monospace;color:var(--muted);font-size:12px">${s.sold_at}</span>
+          <span style="font-weight:800;color:var(--accent);font-family:'Space Mono',monospace">${fmt(s.total)} UZS</span>
+        </div>
+        ${s.items.map(i => `
+          <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px">
+            <span>${i.name} <span style="color:var(--muted)">×${i.quantity}</span></span>
+            <span class="mono">${fmt(i.subtotal)} UZS</span>
+          </div>`).join('')}
+      </div>
+    `).join('');
+  } catch {
+    el.innerHTML = '<p style="text-align:center;color:var(--danger)">Serverga ulanib bo\'lmadi</p>';
+  }
+}
+
+// ════════════════
+// DASHBOARD
+// ════════════════
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/stats`);
+    const d = await res.json();
+    document.getElementById('stat-products').textContent = d.total_products;
+    document.getElementById('stat-sales').textContent    = d.total_sales;
+    document.getElementById('stat-revenue').textContent  = fmt(d.total_revenue) + ' UZS';
+    const ls = document.getElementById('lowStock');
+    ls.innerHTML = !d.low_stock.length
+      ? '<p style="color:var(--accent);padding:16px">✅ Barcha mahsulotlar yetarli</p>'
+      : d.low_stock.map(p => `
+          <div class="low-stock-item">
+            <span>${p.name}</span>
+            <span class="stock-num">${p.quantity} dona</span>
+          </div>`).join('');
+  } catch {
+    toast('Statistika yuklanmadi', 'error');
+  }
+}
+
+// ── INIT ──
+loadProducts();
+</script>
+</body>
+</html>
